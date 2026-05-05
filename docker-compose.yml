@@ -1,0 +1,16 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: aiassistant-db
+    environment:
+      POSTGRES_USER: aiassistant
+      POSTGRES_PASSWORD: aiassistant
+      POSTGRES_DB: aiassistant
+    # Host 5432 was already in use (local Postgres or another app). Use 5433 on your machine → 5432 in the container.
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
