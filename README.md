@@ -21,6 +21,22 @@ API runs at `http://127.0.0.1:8000/`.
 
 If Docker gives `permission denied` on `/var/run/docker.sock`, run `newgrp docker` and retry in the same terminal.
 
+### OpenAI (RAG — Step 5)
+
+Copy [`.env.example`](.env.example) to `.env` and set at least:
+
+- `OPENAI_API_KEY`
+
+Optional overrides (omit these to use code defaults; only add later if you want to pin specific models):
+
+- `OPENAI_EMBEDDING_MODEL` (default `text-embedding-3-small`)
+- `OPENAI_CHAT_MODEL` (default `gpt-4o-mini`)
+
+Endpoints:
+
+- `POST /api/documents/` — ingest text (chunks + embeddings)
+- `POST /api/ask/` — ask a question (`{"question":"...","top_k":5}`)
+
 ### Stopping services (and keeping your DB safe)
 
 - Stop Django dev server: press `Ctrl + C` in the terminal running `python manage.py runserver`.
