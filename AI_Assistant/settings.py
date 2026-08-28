@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
+import dj_database_url
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,16 +22,59 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
+def _csv_env(name: str) -> list[str]:
+    return [v.strip() for v in os.getenv(name, "").split(",") if v.strip()]
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-ka6^6cwex5=3gslw#f6kfbn9+kfw5$bj*_l71is-x0ggwoyjdi'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# =============================================================================
+# ENVIRONMENT SWITCH  —  choose "dev" (local) or "prod" (Azure)
+# =============================================================================
+# Local:      leave as-is (defaults to "dev").
+# Production: Azure App Service sets  DJANGO_ENV=prod  (see deploy steps).
+# You do NOT need to comment anything out — flip this one variable.
+# (If you prefer commenting, comment out the block you are NOT using below.)
+DJANGO_ENV = os.getenv("DJANGO_ENV", "dev").lower()
+IS_PROD = DJANGO_ENV == "prod"
 
-ALLOWED_HOSTS = []
+
+if not IS_PROD:
+    # -------------------------------------------------------------------------
+    # DEVELOPMENT  (local machine)
+    # -------------------------------------------------------------------------
+    DEBUG = True
+    SECRET_KEY = "django-insecure-ka6^6cwex5=3gslw#f6kfbn9+kfw5$bj*_l71is-x0ggwoyjdi"
+    ALLOWED_HOSTS = ["*"]
+    CSRF_TRUSTED_ORIGINS = []
+
+    # Local Postgres from docker-compose.yml
+    DATABASES = {
+        "default": dj_database_url.parse(
+            "postgres://aiassistant:aiassistant@127.0.0.1:5433/aiassistant",
+            conn_max_age=600,
+        )
+    }
+
+    # Frontend runs on Vite dev server — allow everything locally
+    CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGINS = []
+
+else:
+    # -------------------------------------------------------------------------
+    # PRODUCTION  (Azure — all secrets come from App Service settings)
+    # -------------------------------------------------------------------------
+    DEBUG = False
+    SECRET_KEY = os.environ["SECRET_KEY"]                       # required in prod
+    ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS")                   # e.g. myapp.azurewebsites.net
+    CSRF_TRUSTED_ORIGINS = _csv_env("CSRF_TRUSTED_ORIGINS")     # https://myapp.azurewebsites.net
+
+    # Supabase / Azure Postgres via DATABASE_URL (SSL required)
+    DATABASES = {
+        "default": dj_database_url.config(conn_max_age=600, ssl_require=True)
+    }
+
+    # Only allow the deployed frontend origin(s)
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = _csv_env("CORS_ALLOWED_ORIGINS")     # https://myapp.azurestaticapps.net
 
 
 # Application definition
@@ -42,12 +87,15 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'rag_app',
     'pgvector',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -76,19 +124,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'AI_Assistant.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "aiassistant",
-        "USER": "aiassistant",
-        "PASSWORD": "aiassistant",
-        "HOST": "127.0.0.1",
-        "PORT": "5433",
-    }
-}
+# Database is configured in the ENVIRONMENT SWITCH block near the top.
 
 
 # Password validation
@@ -126,3 +162,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    },
+}
+
+# CORS is configured in the ENVIRONMENT SWITCH block near the top.
+
+# Trust the proxy's forwarded protocol (App Service terminates TLS)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
