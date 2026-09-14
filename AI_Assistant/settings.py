@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -58,6 +59,9 @@ if not IS_PROD:
     CORS_ALLOW_ALL_ORIGINS = True
     CORS_ALLOWED_ORIGINS = []
 
+    # Throttle counters live in memory locally (per process is fine for one runserver)
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
 else:
     # -------------------------------------------------------------------------
     # PRODUCTION  (Azure — all secrets come from App Service settings)
@@ -67,14 +71,38 @@ else:
     ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS")                   # e.g. myapp.azurewebsites.net
     CSRF_TRUSTED_ORIGINS = _csv_env("CSRF_TRUSTED_ORIGINS")     # https://myapp.azurewebsites.net
 
-    # Supabase / Azure Postgres via DATABASE_URL (SSL required)
+    # Azure Database for PostgreSQL via DATABASE_URL (SSL required unless
+    # DATABASE_SSL_REQUIRE=false, which is only for trying prod mode locally)
     DATABASES = {
-        "default": dj_database_url.config(conn_max_age=600, ssl_require=True)
+        "default": dj_database_url.config(
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=os.getenv("DATABASE_SSL_REQUIRE", "true").lower() != "false",
+        )
     }
 
     # Only allow the deployed frontend origin(s)
     CORS_ALLOW_ALL_ORIGINS = False
     CORS_ALLOWED_ORIGINS = _csv_env("CORS_ALLOWED_ORIGINS")     # https://myapp.azurestaticapps.net
+
+    # Throttle counters are shared by all gunicorn workers (table made by `createcachetable`)
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache",
+        }
+    }
+
+    # HTTPS hardening (App Service terminates TLS; enable "HTTPS Only" on the app)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", "3600"))
+    SECURE_REFERRER_POLICY = "same-origin"
+
+
+# Adding documents: open locally, locked in prod unless the X-Ingest-Key header matches.
+INGEST_API_KEY = os.getenv("INGEST_API_KEY", "")
+INGEST_OPEN = not IS_PROD and not INGEST_API_KEY
 
 
 # Application definition
@@ -86,6 +114,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'rest_framework',
     'corsheaders',
     'rag_app',
@@ -171,6 +200,48 @@ STORAGES = {
 }
 
 # CORS is configured in the ENVIRONMENT SWITCH block near the top.
+CORS_ALLOW_HEADERS = (*default_headers, "x-ingest-key")
 
 # Trust the proxy's forwarded protocol (App Service terminates TLS)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
+# Django REST Framework
+# The API is public and stateless: no session auth (so no CSRF on API calls),
+# JSON only in prod, and per-IP rate limits to protect LLM spend.
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.AllowAny"],
+    "UNAUTHENTICATED_USER": None,
+    "DEFAULT_RENDERER_CLASSES": (
+        ["rest_framework.renderers.JSONRenderer"]
+        if IS_PROD
+        else [
+            "rest_framework.renderers.JSONRenderer",
+            "rest_framework.renderers.BrowsableAPIRenderer",
+        ]
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "ask": os.getenv("THROTTLE_ASK_RATE", "30/hour"),
+        "ingest": os.getenv("THROTTLE_INGEST_RATE", "10/hour"),
+        # Each agent request makes several model calls, so it gets a lower limit.
+        "agent": os.getenv("THROTTLE_AGENT_RATE", "15/hour"),
+    },
+}
+
+
+# Logging: everything to stdout so App Service "Log stream" shows it
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain"},
+    },
+    "root": {"handlers": ["console"], "level": os.getenv("LOG_LEVEL", "INFO")},
+    "loggers": {
+        "django.security.DisallowedHost": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+    },
+}

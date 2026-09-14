@@ -1,0 +1,189 @@
+{
+  "description": "Questions over rag_app/demo_docs. evidence: exact phrases from the passage that answers the question (a retrieved chunk containing any of them is a hit). facts: every group must appear in a correct answer (any alternative in the group counts). answerable=false: the documents do not contain the answer, so the assistant should say it does not know.",
+  "questions": [
+    {
+      "id": "edi-835",
+      "question": "Which EDI transaction is the electronic remittance advice?",
+      "expected_document": "US Healthcare Claims and EDI Primer",
+      "evidence": ["The 835 transaction is the electronic remittance advice"],
+      "facts": [["835"]],
+      "answerable": true
+    },
+    {
+      "id": "edi-837i-form",
+      "question": "What paper form did the 837I replace?",
+      "expected_document": "US Healthcare Claims and EDI Primer",
+      "evidence": ["it replaced the paper UB-04 form"],
+      "facts": [["UB-04", "UB04"]],
+      "answerable": true
+    },
+    {
+      "id": "edi-co-group",
+      "question": "What does the CO adjustment group mean?",
+      "expected_document": "US Healthcare Claims and EDI Primer",
+      "evidence": ["CO (contractual obligation"],
+      "facts": [["contractual obligation"]],
+      "answerable": true
+    },
+    {
+      "id": "edi-999",
+      "question": "Which transaction confirms that a submitted EDI file was syntactically accepted?",
+      "expected_document": "US Healthcare Claims and EDI Primer",
+      "evidence": ["The 999 acknowledgment"],
+      "facts": [["999"]],
+      "answerable": true
+    },
+    {
+      "id": "edi-eligibility",
+      "question": "How does a provider find out if a patient's insurance is active?",
+      "expected_document": "US Healthcare Claims and EDI Primer",
+      "evidence": ["A provider sends a 270 inquiry"],
+      "facts": [["270"]],
+      "answerable": true
+    },
+    {
+      "id": "app-chunk-size",
+      "question": "How big is each chunk when a document is split?",
+      "expected_document": "About this AI Assistant",
+      "evidence": ["chunks of up to about 1,200 characters"],
+      "facts": [["1,200", "1200"]],
+      "answerable": true
+    },
+    {
+      "id": "app-fusion",
+      "question": "How are the vector search results and keyword search results combined?",
+      "expected_document": "About this AI Assistant",
+      "evidence": ["merged with reciprocal rank fusion", "Reciprocal rank fusion (RRF) is a simple way to merge"],
+      "facts": [["reciprocal rank fusion", "RRF"]],
+      "answerable": true
+    },
+    {
+      "id": "app-scanned-pdf",
+      "question": "Can I upload a scanned PDF that is just images?",
+      "expected_document": "About this AI Assistant",
+      "evidence": ["Scanned PDFs that contain only images have no extractable text"],
+      "facts": [["no extractable text", "rejected", "not supported", "cannot", "can't", "no text"]],
+      "answerable": true
+    },
+    {
+      "id": "nemt-wheelchair",
+      "question": "What kind of vehicle does a wheelchair rider need?",
+      "expected_document": "NEMT Operations and Route Optimization",
+      "evidence": ["Wheelchair riders need a vehicle with a lift or ramp"],
+      "facts": [["lift", "ramp"]],
+      "answerable": true
+    },
+    {
+      "id": "nemt-will-call",
+      "question": "What happens when the time a rider's appointment ends is unknown?",
+      "expected_document": "NEMT Operations and Route Optimization",
+      "evidence": ["booked as a will-call"],
+      "facts": [["will-call", "will call"]],
+      "answerable": true
+    },
+    {
+      "id": "nemt-np-hard",
+      "question": "Why can't a solver always find the perfect set of routes?",
+      "expected_document": "NEMT Operations and Route Optimization",
+      "evidence": ["Finding the perfect answer is NP-hard"],
+      "facts": [["NP-hard", "NP hard"]],
+      "answerable": true
+    },
+    {
+      "id": "nemt-osrm",
+      "question": "Which routing engine computes travel-time matrices from OpenStreetMap?",
+      "expected_document": "NEMT Operations and Route Optimization",
+      "evidence": ["Routing engines such as OSRM compute these matrices"],
+      "facts": [["OSRM"]],
+      "answerable": true
+    },
+    {
+      "id": "nemt-no-show",
+      "question": "How long does a driver usually wait before marking a rider as a no-show?",
+      "expected_document": "NEMT Operations and Route Optimization",
+      "evidence": ["commonly around 10 to 15 minutes"],
+      "facts": [["10 to 15", "10-15", "10–15"]],
+      "answerable": true
+    },
+    {
+      "id": "hipaa-baa",
+      "question": "What agreement must a vendor sign before it gets access to patient health data?",
+      "expected_document": "HIPAA Privacy Basics for Software Teams",
+      "evidence": ["business associate agreement (BAA)"],
+      "facts": [["business associate agreement", "BAA"]],
+      "answerable": true
+    },
+    {
+      "id": "hipaa-safe-harbor",
+      "question": "How many kinds of identifiers does the Safe Harbor method remove?",
+      "expected_document": "HIPAA Privacy Basics for Software Teams",
+      "evidence": ["18 types of identifiers are removed"],
+      "facts": [["18", "eighteen"]],
+      "answerable": true
+    },
+    {
+      "id": "hipaa-breach-deadline",
+      "question": "What is the deadline for telling people their data was breached?",
+      "expected_document": "HIPAA Privacy Basics for Software Teams",
+      "evidence": ["no later than 60 days"],
+      "facts": [["60 days", "sixty days"]],
+      "answerable": true
+    },
+    {
+      "id": "hipaa-minimum-necessary",
+      "question": "Should a late-trips report include the rider's diagnosis?",
+      "expected_document": "HIPAA Privacy Basics for Software Teams",
+      "evidence": ["The minimum necessary standard says"],
+      "facts": [["minimum necessary", "smallest amount"]],
+      "answerable": true
+    },
+    {
+      "id": "rag-rrf-k",
+      "question": "What number is usually used for k in reciprocal rank fusion?",
+      "expected_document": "RAG Techniques Glossary",
+      "evidence": ["k is usually 60"],
+      "facts": [["60"]],
+      "answerable": true
+    },
+    {
+      "id": "rag-mrr",
+      "question": "What does MRR measure in retrieval evaluation?",
+      "expected_document": "RAG Techniques Glossary",
+      "evidence": ["mean reciprocal rank (MRR), the average of 1 divided by the rank"],
+      "facts": [["reciprocal rank"], ["first relevant"]],
+      "answerable": true
+    },
+    {
+      "id": "rag-agent-limit",
+      "question": "Why does an agent loop need a step limit?",
+      "expected_document": "RAG Techniques Glossary",
+      "evidence": ["it needs a step limit so it cannot loop forever"],
+      "facts": [["loop forever", "forever", "infinite"]],
+      "answerable": true
+    },
+    {
+      "id": "none-embedding-price",
+      "question": "How much does the embedding model cost per million tokens?",
+      "expected_document": null,
+      "evidence": [],
+      "facts": [],
+      "answerable": false
+    },
+    {
+      "id": "none-world-cup",
+      "question": "Who won the FIFA World Cup in 2022?",
+      "expected_document": null,
+      "evidence": [],
+      "facts": [],
+      "answerable": false
+    },
+    {
+      "id": "none-texas-broker",
+      "question": "What is the phone number of the Medicaid transportation broker in Texas?",
+      "expected_document": null,
+      "evidence": [],
+      "facts": [],
+      "answerable": false
+    }
+  ]
+}
