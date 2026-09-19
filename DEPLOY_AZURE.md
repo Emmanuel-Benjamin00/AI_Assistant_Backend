@@ -17,7 +17,7 @@ Allow about an hour the first time. Do the steps in order: each one produces a v
 
 - **Rotate any key that was ever committed.** Azure OpenAI settings were once committed to this repo's history. If that Azure OpenAI resource still exists, open it → **Keys and Endpoint** → **Regenerate**. If the resource has been deleted, the old key no longer works. Deleting the file does not remove it from git history.
 - **Check what already exists.** In the portal open **All resources**. If an older `ai-assistant-api` App Service or database is there, either reuse it (skip its create step and just apply the settings below) or delete it so you are not paying twice.
-- **Pick one region and use it for everything**, e.g. *Central India* or *Southeast Asia*. Azure for Students subscriptions only allow some regions; if a create fails with `RequestDisallowedByAzure` or a policy error, try another region.
+- **Pick one region and use it for everything**, e.g. *Central India* or *Southeast Asia*. **Do not use *East Asia*** with the OpenAI API: it is in Hong Kong, which OpenAI does not serve, so every AI call fails with `403 unsupported_country_region_territory`. Azure for Students subscriptions only allow some regions; if a create fails with `RequestDisallowedByAzure` or a policy error, try another region.
 - **Set a budget alert:** search **Cost Management** → **Budgets** → **Add**, e.g. $20/month with an email alert at 80%.
 
 Keep a text file open and paste values into it as you go: server name, DB password, app URL, keys.
@@ -158,11 +158,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(24))"   # INGEST_API_KEY
 
 ### 4b. General settings
 
-App → **Settings** → **Configuration** → **General settings**:
+App → **Settings** → **Configuration**:
 
-- **Startup Command:** `bash startup.sh`
-- **HTTPS Only:** On
-- **Always On:** On (B1 only)
+- **Stack settings** tab → **Startup command:** `bash startup.sh`
+- **General settings** tab → **HTTPS Only:** On, **Always On:** On (B1 only)
 
 **Save**.
 
@@ -267,6 +266,7 @@ Always start with App Service → **Monitoring** → **Log stream**.
 | `KeyError: 'SECRET_KEY'` | `SECRET_KEY` app setting is missing. |
 | `ModuleNotFoundError: No module named 'django'` | The build did not install requirements: set `SCM_DO_BUILD_DURING_DEPLOYMENT=true` and redeploy. |
 | Answers say *The AI service is not configured* | `LLM_PROVIDER` and its key/endpoint/deployment settings are missing or misspelled. |
+| Log shows `403 unsupported_country_region_territory` | OpenAI blocks the App Service's region (e.g. East Asia = Hong Kong). Recreate the app in a supported region such as Central India or Southeast Asia. |
 | *The AI service request failed* | Wrong key, wrong Azure deployment name, or the OpenAI budget is used up. Log stream shows the provider's status code. |
 | UI says *Adding documents is locked* | Expected on the public demo. Type your `INGEST_API_KEY` into the *Access key* field. |
 | `429 Too Many Requests` | The per-IP rate limit. Adjust `THROTTLE_ASK_RATE` / `THROTTLE_INGEST_RATE` (e.g. `60/hour`). |
