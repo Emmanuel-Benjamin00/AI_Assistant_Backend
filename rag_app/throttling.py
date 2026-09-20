@@ -40,11 +40,19 @@ class IngestKeyPermission(BasePermission):
     cannot be filled with junk or used to spend embedding credits.
     """
 
-    message = "Adding documents is locked on this deployment. You can still ask questions."
+    MISSING_KEY = (
+        "An access key is required to add documents. Enter it in the Access key field above. "
+        "Asking questions does not need a key."
+    )
+    WRONG_KEY = "That access key is not correct. Check it and try again."
+
+    message = MISSING_KEY
 
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS or settings.INGEST_OPEN:
             return True
-        expected = settings.INGEST_API_KEY
         provided = request.headers.get("X-Ingest-Key", "")
+        # Say which of the two it is, so a caller with a key knows to check it rather than find one.
+        self.message = self.WRONG_KEY if provided else self.MISSING_KEY
+        expected = settings.INGEST_API_KEY
         return bool(expected) and hmac.compare_digest(provided.encode(), expected.encode())

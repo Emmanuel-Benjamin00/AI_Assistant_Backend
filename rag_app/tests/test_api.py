@@ -106,9 +106,15 @@ class ApiTests(TestCase):
     @override_settings(INGEST_OPEN=False, INGEST_API_KEY="secret")
     def test_locked_ingest_needs_key(self, _embed, _chat):
         payload = {"title": "T", "text": "Body"}
-        self.assertEqual(self.client.post("/api/documents/", payload, format="json").status_code, 403)
+        r = self.client.post("/api/documents/", payload, format="json")
+        self.assertEqual(r.status_code, 403)
+        # No key: say a key is required and where to put it.
+        self.assertIn("access key is required", r.json()["detail"])
+        self.assertIn("Access key field", r.json()["detail"])
         r = self.client.post("/api/documents/", payload, format="json", HTTP_X_INGEST_KEY="wrong")
         self.assertEqual(r.status_code, 403)
+        # Wrong key: a different message, so the caller checks their key instead of hunting for one.
+        self.assertIn("not correct", r.json()["detail"])
         r = self.client.post("/api/documents/", payload, format="json", HTTP_X_INGEST_KEY="secret")
         self.assertEqual(r.status_code, 201)
         # Listing stays public.
